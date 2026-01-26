@@ -147,7 +147,7 @@ class AuthService extends AuthServiceContract {
       }
       else {
         const userRole = await this.roleRepo.findOneBy({
-          name: UserRoles.USER,
+          name: UserRoles.CUSTOMER,
         });
         if (!userRole) throw new Error('USER role not found');
 

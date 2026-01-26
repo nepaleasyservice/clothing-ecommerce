@@ -15,6 +15,8 @@ import { CreateUserDto } from './dto/create-user.dto';
 import { UserServiceContract } from './contracts/user.service.contract';
 import { AnyFilesInterceptor } from '@nestjs/platform-express';
 import { UpdateUserDto } from './dto/update-user.dto';
+import { ApiBadRequestResponse, ApiCreatedResponse } from '@nestjs/swagger';
+import { User } from '../database/entities/user.entity';
 
 @Controller('users')
 export class UserController {
@@ -49,6 +51,13 @@ export class UserController {
   }
 
   @Post('create')
+  @ApiCreatedResponse({
+    description: 'User created successfully',
+    type: User,
+  })
+  @ApiBadRequestResponse({
+    description: 'User is not successfully',
+  })
   @UseInterceptors(AnyFilesInterceptor())
   async createUser(@Body() body: CreateUserDto) {
     console.log(body);
