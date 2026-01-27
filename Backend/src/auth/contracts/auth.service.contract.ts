@@ -1,12 +1,14 @@
 import { OAuth2Tokens } from 'arctic';
+import { UserRegisterDto } from '../dto/user-register.dto';
+import {User} from "../../database/entities/user.entity";
+import {UserLoginDto} from "../dto/user-login.dto";
+import { Req } from '@nestjs/common';
 
 export abstract class AuthServiceContract {
-  abstract login(username: string, password: string): Promise<any>;
-  abstract signup(
-    username: string,
-    password: string,
-    confirmPassword: string,
-  ): Promise<any>;
+  abstract login(
+    data: UserLoginDto,
+  ): Promise<{ accessToken: string; refreshToken: string }>;
+  abstract signup(data: UserRegisterDto): Promise<User>;
   abstract generateGoogleLoginPageUrl(): Promise<string | null>;
   abstract handleGoogleCallback(
     state: string,
@@ -15,4 +17,5 @@ export abstract class AuthServiceContract {
   abstract loginWithGoogle(
     tokens: OAuth2Tokens,
   ): Promise<{ accessToken: string; refreshToken: string }>;
+  abstract refresh(refreshToken: string): Promise<{ accessToken: string, refreshToken: string }>
 }

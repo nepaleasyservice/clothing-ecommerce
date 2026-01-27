@@ -4,7 +4,7 @@ import AuthService from './auth.service';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { User } from '../database/entities/user.entity';
 import { AuthServiceContract } from './contracts/auth.service.contract';
-import { GoogleOAuthProvider } from './oauth/google.provider';
+import { GoogleOAuthProvider } from './oauthProviders/google.provider';
 import { Role } from '../database/entities/role.entity';
 import { AuthProvider } from '../database/entities/auth.providers.entity';
 import { CoreModule } from '../core/core.module';
