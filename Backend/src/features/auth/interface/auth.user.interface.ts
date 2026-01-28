@@ -1,4 +1,4 @@
-import { UserRoles } from '../../common/enums/users.enum';
+import { UserRoles } from '../../../common/enums/users.enum';
 
 export interface AuthUser {
   username: string;

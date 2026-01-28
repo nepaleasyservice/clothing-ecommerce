@@ -10,15 +10,15 @@ import {
 import { AuthServiceContract } from './contracts/auth.service.contract';
 import { OAuth2Tokens } from 'arctic';
 import type { Response } from 'express';
+import { UserRegisterDto } from './dto/user-register.dto';
+import { ApiBadRequestResponse } from '@nestjs/swagger';
+import {UserLoginDto} from "./dto/user-login.dto";
+import type { Request } from 'express';
 import {
   accessTokenCookieOptions,
   refreshTokenCookieOptions,
-} from '../config/cookie.config';
-import { UserRegisterDto } from './dto/user-register.dto';
-import { ApiBadRequestResponse } from '@nestjs/swagger';
-import {User} from "../database/entities/user.entity";
-import {UserLoginDto} from "./dto/user-login.dto";
-import type { Request } from 'express';
+} from '../../config/cookie.config';
+import { User } from '../../database/entities/user.entity';
 
 @Controller('auth')
 export class AuthController {
