@@ -55,15 +55,20 @@ export class AuthController {
     return { success: true, data: {accessToken } };
   }
 
-  @Post('google/refresh')
-  async refresh(@Req() req: Request, @Res() res: Response): Promise<{ accessToken: string }> {
+  @Post('refresh')
+  async refresh(@Req() req: Request, @Res({ passthrough: true }) res: Response) {
+
     const oldRefreshToken: string = req.cookies?.refreshToken;
+
     if (!oldRefreshToken)
       throw new UnauthorizedException('Missing refresh token');
+
     const { accessToken, refreshToken } = await this.auth.refresh(oldRefreshToken);
+
+    res.cookie('accessToken', accessToken, accessTokenCookieOptions());
     res.cookie('refreshToken', refreshToken, refreshTokenCookieOptions());
 
-    return { accessToken: accessToken };
+    return { success: true };
   }
 
 

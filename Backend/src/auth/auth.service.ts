@@ -12,7 +12,7 @@ import {
   Google,
   OAuth2Tokens,
 } from 'arctic';
-import { webcrypto } from 'node:crypto';
+import { createHash, randomBytes, webcrypto } from 'node:crypto';
 import { createClient } from 'redis';
 import { GOOGLE_OAUTH } from './oauthProviders/google.provider';
 import { InjectRepository } from '@nestjs/typeorm';
@@ -55,6 +55,12 @@ class AuthService extends AuthServiceContract {
     );
   }
 
+  private makeRefreshToken() {
+    const token = randomBytes(32).toString('base64url');
+    const tokenHash = createHash('sha256').update(token).digest('hex');
+    return {token, tokenHash};
+  }
+
   async generateGoogleLoginPageUrl(): Promise<string | null> {
     try {
       const oauthSessionId = this.generate32ByteHex();
@@ -72,7 +78,7 @@ class AuthService extends AuthServiceContract {
         codeVerifier,
         scopes,
       );
-      url.searchParams.set('access_type', 'offline');
+      // url.searchParams.set('access_type', 'offline');
 
       await this.redis.hSet(`session:${oauthSessionId}`, {
         state,
@@ -125,14 +131,14 @@ class AuthService extends AuthServiceContract {
     }
     const claims = decodeJwt<GoogleClaims>(idToken);
 
-    console.log({ idToken: tokens, claims: claims });
+    // console.log({ idToken: tokens, claims: claims });
 
     let provider = await this.authProviderRepo.findOne({
       where: {
         provider: authProviders.GOOGLE,
         providerUserId: claims.sub,
       },
-      relations: ['user'],
+      relations: ['user', 'user.roles'],
     });
 
     let user: User | null;
@@ -185,15 +191,15 @@ class AuthService extends AuthServiceContract {
         } finally {
           await queryRunner.release();
         }
-        console.log(tokens);
-        if (tokens.hasRefreshToken()) {
-          console.log(tokens.refreshToken());
-          provider.refresh_token = this.cryptoService.encrypt(
-            tokens.refreshToken(),
-          );
-        }
+        // console.log(tokens);
         await this.authProviderRepo.save(provider);
       }
+    }
+    if (tokens.hasRefreshToken()) {
+      provider.refresh_token = this.cryptoService.encrypt(
+        tokens.refreshToken(),
+      );
+      await this.authProviderRepo.save(provider);
     }
     if (!user) {
       throw new InternalServerErrorException(
@@ -207,31 +213,46 @@ class AuthService extends AuthServiceContract {
       roles: user.roles.map((r) => r.name),
     });
 
-    const refreshToken = await bcrypt.hash(this.generate32ByteHex(), 10);
+    const userSessionsKey = `user_sessions:${user.id}`;
+    const tokenExists = await this.redis.sMembers(userSessionsKey);
+
+    if (tokenExists.length > 0) {
+      const existedToken = await this.redis.get(`refresh:${tokenExists[0]}`);
+      if(!existedToken) throw new UnauthorizedException('user not found');
+      // console.log(`Redis refresh token: ${existedToken}`);
+      return { accessToken, refreshToken: existedToken };
+    }
+
+    const { token, tokenHash } = this.makeRefreshToken();
     await this.redis.set(
-      `refresh:${refreshToken}`,
+      `refresh:${tokenHash}`,
       JSON.stringify({ userId: user.id }),
       {
         EX: 7 * 24 * 60 * 60,
       },
     );
+    await this.redis.sAdd(userSessionsKey, tokenHash);
+    await this.redis.expire(userSessionsKey, 7 * 24 * 60 * 60);
 
-    return { accessToken, refreshToken };
+    return { accessToken, refreshToken: token };
   }
 
   async refresh(
     refreshToken: string,
   ): Promise<{ accessToken: any; refreshToken: any }> {
 
-    let sessionKey = `refresh:${refreshToken}`;
+    const oldHash = createHash('sha256').update(refreshToken).digest('hex');
+    const oldKey = `refresh:${oldHash}`;
 
-    const data = await this.redis.get(sessionKey);
-
+    const data = await this.redis.get(oldKey);
     if(!data) throw new UnauthorizedException('Invalid refresh token');
 
     const sessionData: SessionData = JSON.parse(data);
 
-    await this.redis.del(sessionKey);
+    await this.redis.del(oldKey);
+
+    const userSessionsKey = `user_sessions:${sessionData.userId}`;
+    await this.redis.sRem(userSessionsKey, oldHash);
 
     const user = await this.userRepo.findOne({
       where: {id: sessionData.userId},
@@ -246,20 +267,20 @@ class AuthService extends AuthServiceContract {
       roles: user.roles.map((r) => r.name),
     });
 
-    const newRefreshToken = await bcrypt.hash(
-        this.generate32ByteHex(), 10
-    );
-
-    sessionKey = `refresh:${newRefreshToken}`;
+    const { token, tokenHash } = this.makeRefreshToken();
 
     await this.redis.set(
-        sessionKey,
-        JSON.stringify({userId: user.id}),
-        {
-          EX: 7 * 24 * 60 * 60,
-        }
+      `refresh:${tokenHash}`,
+      JSON.stringify({ userId: user.id }),
+      {
+        EX: 7 * 24 * 60 * 60,
+      },
     );
-    return { accessToken, "refreshToken": newRefreshToken };
+
+    await this.redis.sAdd(userSessionsKey, tokenHash);
+    await this.redis.expire(userSessionsKey, 7 * 24 * 60 * 60);
+
+    return { accessToken, refreshToken: token };
   }
 
   async login(
@@ -309,23 +330,19 @@ class AuthService extends AuthServiceContract {
     };
     const accessToken = await this.jwtProvider.getAccessToken(payload);
 
-    const refreshToken = await bcrypt.hash(this.generate32ByteHex(), 10);
+    const { token, tokenHash } = this.makeRefreshToken();
     const sessionInfo: SessionData = {
       userId: user.id
     };
-    await this.redis.set(
-      `refresh:${refreshToken}`,
-      JSON.stringify(sessionInfo),
-      {
-        EX: 7 * 24 * 60 * 60,
-      },
-    );
+    await this.redis.set(`refresh:${tokenHash}`, JSON.stringify(sessionInfo), {
+      EX: 7 * 24 * 60 * 60,
+    });
 
     const userSessionsKey = `user_sessions:${user.id}`;
-    await this.redis.sAdd(userSessionsKey, refreshToken);
+    await this.redis.sAdd(userSessionsKey, tokenHash);
     await this.redis.expire(userSessionsKey, 7 * 24 * 60 * 60);
 
-    return { accessToken, refreshToken };
+    return { accessToken, refreshToken: token };
   }
 
   async signup(body: UserRegisterDto): Promise<User> {

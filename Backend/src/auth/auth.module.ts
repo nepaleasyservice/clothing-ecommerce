@@ -8,17 +8,21 @@ import { GoogleOAuthProvider } from './oauthProviders/google.provider';
 import { Role } from '../database/entities/role.entity';
 import { AuthProvider } from '../database/entities/auth.providers.entity';
 import { CoreModule } from '../core/core.module';
+import {JwtAuthModule} from "../common/guards/jwt-auth/jwt-auth.module";
 
 @Module({
-  imports: [TypeOrmModule.forFeature([User, Role, AuthProvider]), CoreModule],
+  imports: [
+    TypeOrmModule.forFeature([User, Role, AuthProvider]),
+    CoreModule,
+  ],
   controllers: [AuthController],
   providers: [
     {
       provide: AuthServiceContract,
       useClass: AuthService,
     },
-    GoogleOAuthProvider
+    GoogleOAuthProvider,
   ],
-  exports: [GoogleOAuthProvider]
+  exports: [GoogleOAuthProvider],
 })
 export class AuthModule {}
