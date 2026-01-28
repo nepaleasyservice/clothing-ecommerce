@@ -98,7 +98,6 @@ export async function runSeed(dataSource: DataSource) {
     name: 'Store Admin',
     email: 'admin@clothingstore.com',
     password: passwordHash,
-    emailVerified: true,
     roles: [adminRole],
   });
 
@@ -106,7 +105,6 @@ export async function runSeed(dataSource: DataSource) {
     name: 'Store Staff',
     email: 'staff@clothingstore.com',
     password: passwordHash,
-    emailVerified: true,
     roles: [staffRole],
   });
 
@@ -114,7 +112,6 @@ export async function runSeed(dataSource: DataSource) {
     name: 'John Customer',
     email: 'customer@gmail.com',
     password: passwordHash,
-    emailVerified: true,
     roles: [customerRole],
   });
 
