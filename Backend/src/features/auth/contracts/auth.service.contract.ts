@@ -1,8 +1,7 @@
 import { OAuth2Tokens } from 'arctic';
 import { UserRegisterDto } from '../dto/user-register.dto';
-import {User} from "../../database/entities/user.entity";
 import {UserLoginDto} from "../dto/user-login.dto";
-import { Req } from '@nestjs/common';
+import { User } from '../../../database/entities/user.entity';
 
 export abstract class AuthServiceContract {
   abstract login(

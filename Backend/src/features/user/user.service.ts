@@ -4,12 +4,12 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { User } from '../database/entities/user.entity';
+import { User } from '../../database/entities/user.entity';
 import { In, Repository } from 'typeorm';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UserServiceContract } from './contracts/user.service.contract';
 import { UpdateUserDto } from './dto/update-user.dto';
-import { Role } from '../database/entities/role.entity';
+import { Role } from '../../database/entities/role.entity';
 
 @Injectable()
 export class UserService extends UserServiceContract {

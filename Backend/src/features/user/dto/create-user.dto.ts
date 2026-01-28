@@ -7,7 +7,7 @@ import {
   IsStrongPassword,
   MaxLength,
 } from 'class-validator';
-import { UserRoles } from '../../common/enums/users.enum';
+import { UserRoles } from '../../../common/enums/users.enum';
 import { ApiProperty } from '@nestjs/swagger';
 
 

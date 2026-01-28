@@ -16,21 +16,21 @@ import { createHash, randomBytes, webcrypto } from 'node:crypto';
 import { createClient } from 'redis';
 import { GOOGLE_OAUTH } from './oauthProviders/google.provider';
 import { InjectRepository } from '@nestjs/typeorm';
-import { User } from '../database/entities/user.entity';
 import { decodeJwt } from 'jose';
-import { UserRoles } from '../common/enums/users.enum';
+import { UserRoles } from '../../common/enums/users.enum';
 import { GoogleClaims } from './interface/google.claims';
 import { Repository } from 'typeorm';
-import { Role } from '../database/entities/role.entity';
-import { AuthProvider } from '../database/entities/auth.providers.entity';
-import { authProviders } from '../common/enums/authproviders.enum';
-import { JwtProvider } from '../core/jwt-provider/jwt-provider.service';
+import { Role } from '../../database/entities/role.entity';
+import { AuthProvider } from '../../database/entities/auth.providers.entity';
+import { authProviders } from '../../common/enums/authproviders.enum';
+import { JwtProvider } from '../../core/jwt-provider/jwt-provider.service';
 import * as bcrypt from 'bcrypt';
 import { UserRegisterDto } from './dto/user-register.dto';
 import { UserLoginDto } from './dto/user-login.dto';
 import { StateDto } from './dto/state.dto';
-import { CryptoService } from '../core/crypto/crypto.service';
+import { CryptoService } from '../../core/crypto/crypto.service';
 import {SessionData} from "./interface/session-data.interface";
+import { User } from '../../database/entities/user.entity';
 
 type ClientRedis = ReturnType<typeof createClient>;
 
