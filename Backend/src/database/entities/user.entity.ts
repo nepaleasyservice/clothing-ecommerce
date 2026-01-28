@@ -42,13 +42,6 @@ export class User {
   password: string;
 
   @ApiProperty({
-    description: "is user email verified",
-    examples: [true, false]
-  })
-  @Column({type: Boolean, default: false})
-  emailVerified: boolean;
-
-  @ApiProperty({
     description: "user's roles",
     example: ['ADMIN', 'SUPERADMIN', 'USER']
   })

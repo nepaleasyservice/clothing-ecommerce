@@ -29,7 +29,7 @@ import { UserRegisterDto } from './dto/user-register.dto';
 import { UserLoginDto } from './dto/user-login.dto';
 import { StateDto } from './dto/state.dto';
 import { CryptoService } from '../../core/crypto/crypto.service';
-import {SessionData} from "./interface/session-data.interface";
+import { SessionData } from './interface/session-data.interface';
 import { User } from '../../database/entities/user.entity';
 
 type ClientRedis = ReturnType<typeof createClient>;
@@ -58,7 +58,7 @@ class AuthService extends AuthServiceContract {
   private makeRefreshToken() {
     const token = randomBytes(32).toString('base64url');
     const tokenHash = createHash('sha256').update(token).digest('hex');
-    return {token, tokenHash};
+    return { token, tokenHash };
   }
 
   async generateGoogleLoginPageUrl(): Promise<string | null> {
@@ -172,7 +172,6 @@ class AuthService extends AuthServiceContract {
           user = this.userRepo.create({
             name: claims.name,
             email: claims.email,
-            emailVerified: claims.email_verified === true,
             roles: [userRole],
           });
           await queryRunner.manager.save(user);
@@ -218,7 +217,7 @@ class AuthService extends AuthServiceContract {
 
     if (tokenExists.length > 0) {
       const existedToken = await this.redis.get(`refresh:${tokenExists[0]}`);
-      if(!existedToken) throw new UnauthorizedException('user not found');
+      if (!existedToken) throw new UnauthorizedException('user not found');
       // console.log(`Redis refresh token: ${existedToken}`);
       return { accessToken, refreshToken: existedToken };
     }
@@ -240,12 +239,11 @@ class AuthService extends AuthServiceContract {
   async refresh(
     refreshToken: string,
   ): Promise<{ accessToken: any; refreshToken: any }> {
-
     const oldHash = createHash('sha256').update(refreshToken).digest('hex');
     const oldKey = `refresh:${oldHash}`;
 
     const data = await this.redis.get(oldKey);
-    if(!data) throw new UnauthorizedException('Invalid refresh token');
+    if (!data) throw new UnauthorizedException('Invalid refresh token');
 
     const sessionData: SessionData = JSON.parse(data);
 
@@ -255,11 +253,11 @@ class AuthService extends AuthServiceContract {
     await this.redis.sRem(userSessionsKey, oldHash);
 
     const user = await this.userRepo.findOne({
-      where: {id: sessionData.userId},
+      where: { id: sessionData.userId },
       relations: ['roles'],
     });
 
-    if(!user) throw new UnauthorizedException();
+    if (!user) throw new UnauthorizedException();
 
     const accessToken = await this.jwtProvider.getAccessToken({
       id: user.id,
@@ -302,17 +300,22 @@ class AuthService extends AuthServiceContract {
         'email',
         'password',
         'isActive',
-        'emailVerified',
         'name',
         'roles',
       ],
     });
+    if (!user) throw new UnauthorizedException('invalid credentials');
+
+    const authProvider = await this.authProviderRepo.findOne({
+      where: { user: user, provider: authProviders.LOCAL },
+      relations: ['user'],
+    });
+
     const validPassword = user
       ? await bcrypt.compare(password, user.password)
       : false;
 
-    const canLogin =
-      user && validPassword && user.isActive && user.emailVerified;
+    const canLogin = user && validPassword && user.isActive && authProvider && authProvider.emailVerified;
 
     if (!canLogin) {
       await this.redis.incr(attemptsKey);
@@ -332,7 +335,7 @@ class AuthService extends AuthServiceContract {
 
     const { token, tokenHash } = this.makeRefreshToken();
     const sessionInfo: SessionData = {
-      userId: user.id
+      userId: user.id,
     };
     await this.redis.set(`refresh:${tokenHash}`, JSON.stringify(sessionInfo), {
       EX: 7 * 24 * 60 * 60,
@@ -360,6 +363,10 @@ class AuthService extends AuthServiceContract {
         lock: { mode: 'pessimistic_write' },
       });
 
+
+      const salt = await bcrypt.genSalt(10);
+      const hashedPassword = await bcrypt.hash(password, salt);
+
       if (user) {
         const existingProvider = await queryRunner.manager.findOne(
           AuthProvider,
@@ -380,11 +387,11 @@ class AuthService extends AuthServiceContract {
         });
         await queryRunner.manager.save(provider);
         await queryRunner.commitTransaction();
+
+        user.password = hashedPassword;
+        await queryRunner.manager.save(user);
         return user;
       }
-
-      const salt = await bcrypt.genSalt(10);
-      const hashedPassword = await bcrypt.hash(password, salt);
 
       const role = await queryRunner.manager.findOne(Role, {
         where: { name: UserRoles.CUSTOMER },

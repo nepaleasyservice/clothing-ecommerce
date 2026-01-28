@@ -1,7 +1,7 @@
 import {
   Column,
   CreateDateColumn,
-  Entity,
+  Entity, JoinTable, ManyToMany,
   ManyToOne,
   PrimaryGeneratedColumn,
   UpdateDateColumn,
@@ -9,24 +9,32 @@ import {
 import { User } from './user.entity';
 import { IsString } from 'class-validator';
 import { authProviders } from '../../common/enums/authproviders.enum';
+import { ApiProperty } from '@nestjs/swagger';
 
 @Entity()
-export class AuthProvider{
+export class AuthProvider {
   @PrimaryGeneratedColumn()
   id: number;
 
-  @ManyToOne(() => User, (user) => user.authProvider, {onDelete: 'CASCADE'})
+  @ManyToOne(() => User, (user) => user.authProvider, { onDelete: 'CASCADE' })
   user: User;
 
   @Column({
     type: 'enum',
-    enum: authProviders
+    enum: authProviders,
   })
   @IsString()
   provider: authProviders;
 
   @Column()
-  providerUserId: string
+  providerUserId: string;
+
+  @ApiProperty({
+    description: 'is user email verified',
+    examples: [true, false],
+  })
+  @Column({ type: Boolean, default: false })
+  emailVerified: boolean;
 
   @Column()
   refresh_token: string;
