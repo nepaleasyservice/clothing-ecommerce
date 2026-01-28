@@ -9,6 +9,7 @@ import {
   ParseIntPipe,
   Patch,
   Post,
+  UseGuards,
   UseInterceptors,
 } from '@nestjs/common';
 import { CreateUserDto } from './dto/create-user.dto';
@@ -17,11 +18,13 @@ import { AnyFilesInterceptor } from '@nestjs/platform-express';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { ApiBadRequestResponse, ApiCreatedResponse } from '@nestjs/swagger';
 import { User } from '../database/entities/user.entity';
+import { JwtAuthGuard } from '../common/guards/jwt-auth/jwt-auth.service';
 
 @Controller('users')
 export class UserController {
   constructor(private readonly user: UserServiceContract) {}
 
+  @UseGuards(JwtAuthGuard)
   @Get()
   async getUsers() {
     const users = await this.user.findAll();

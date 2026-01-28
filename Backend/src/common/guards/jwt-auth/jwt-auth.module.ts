@@ -1,6 +1,6 @@
 import { Module } from '@nestjs/common';
+import { JwtAuthGuard } from './jwt-auth.service';
 import { JwtModule } from '@nestjs/jwt';
-import { JwtProvider } from './jwt-provider.service';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 
 @Module({
@@ -9,12 +9,11 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
       imports: [ConfigModule],
       inject: [ConfigService],
       useFactory: (config: ConfigService) => ({
-        secret: config.getOrThrow('jwt.accessTokenSecret'),
-        signOptions: { expiresIn: config.getOrThrow('jwt.accessTokenExpiry') },
+        secret: config.getOrThrow<string>('jwt.accessTokenSecret'),
       }),
     }),
   ],
-  providers: [JwtProvider],
-  exports: [JwtProvider, JwtModule],
+  providers: [JwtAuthGuard],
+  exports: [JwtAuthGuard, JwtModule],
 })
-export class JwtProviderModule {}
+export class JwtAuthModule {}

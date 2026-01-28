@@ -6,16 +6,17 @@ import { UserService } from './user.service';
 import { UserServiceContract } from './contracts/user.service.contract';
 import { Role } from '../database/entities/role.entity';
 import { Permission } from '../database/entities/permission.entity';
+import { JwtAuthModule } from '../common/guards/jwt-auth/jwt-auth.module';
 
 @Module({
-  imports: [TypeOrmModule.forFeature([User, Role, Permission])],
+  imports: [TypeOrmModule.forFeature([User, Role, Permission]), JwtAuthModule],
   providers: [
     {
       provide: UserServiceContract,
       useClass: UserService,
-    }
+    },
   ],
   controllers: [UserController],
-  exports: [UserServiceContract]
+  exports: [UserServiceContract],
 })
 export class UserModule {}

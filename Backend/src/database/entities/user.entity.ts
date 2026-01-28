@@ -32,7 +32,7 @@ export class User {
     description: "user's email",
     example: "rohandhungana2002@gmail.com"
   })
-  @Column({unique: true, nullable: true})
+  @Column({unique: true})
   email: string;
 
   @ApiProperty({
