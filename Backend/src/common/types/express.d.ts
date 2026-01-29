@@ -1,9 +1,9 @@
-import { AuthUser } from '../../auth/interface/auth.user.interface';
+import { AuthUser } from '../../features/auth/interface/auth.user.interface';
 
 declare global {
   namespace Express {
     interface Request {
-      user?: AuthUser
+      user?: AuthUser | undefined;
     }
   }
 }

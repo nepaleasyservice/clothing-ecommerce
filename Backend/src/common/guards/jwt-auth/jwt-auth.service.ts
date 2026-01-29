@@ -6,12 +6,22 @@ import {
 } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { Request } from 'express';
+import { Reflector } from '@nestjs/core';
+import { PROTECT_KEY } from '../../decorators/auth/auth.decorator';
 
 // JWT AUTH GUARDS
 @Injectable()
 export class JwtAuthGuard implements CanActivate {
-  constructor(private readonly jwtService: JwtService) {}
+  constructor(private readonly jwtService: JwtService, private readonly reflector: Reflector) {}
   async canActivate(context: ExecutionContext): Promise<boolean> {
+
+    const shouldProtect = this.reflector.getAllAndOverride<boolean>(PROTECT_KEY, [
+      context.getHandler(),
+      context.getClass(),
+    ]);
+
+    if(!shouldProtect) return true;
+
     const request = context.switchToHttp().getRequest<Request>();
 
     const token = this.extractToken(request);
@@ -22,7 +32,7 @@ export class JwtAuthGuard implements CanActivate {
       const payload = await this.jwtService.verifyAsync(token, {
         secret: process.env.ACCESS_TOKEN_SECRET,
       });
-      console.log(payload);
+      // console.log(payload);
       request['user'] = payload;
       return true;
     } catch {
@@ -37,7 +47,6 @@ export class JwtAuthGuard implements CanActivate {
       const [type, token] = authHeader.split(' ');
       if (type === 'Bearer') return token;
     }
-
     return (req as any).cookies?.accessToken ?? null;
   }
 }

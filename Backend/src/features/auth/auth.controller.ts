@@ -30,7 +30,7 @@ export class AuthController {
   // @UseInterceptors(AnyFilesInterceptor())
   async getGoogleLogin() {
     const url = await this.auth.generateGoogleLoginPageUrl();
-    if (!url) return 'Unable to craete url';
+    if (!url) return 'Unable to create url';
     return url;
   }
 

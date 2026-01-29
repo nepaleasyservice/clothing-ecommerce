@@ -17,7 +17,7 @@ import { createClient } from 'redis';
 import { GOOGLE_OAUTH } from './oauthProviders/google.provider';
 import { InjectRepository } from '@nestjs/typeorm';
 import { decodeJwt } from 'jose';
-import { UserRoles } from '../../common/enums/users.enum';
+import { RolesEnum } from '../../common/enums/role.enum';
 import { GoogleClaims } from './interface/google.claims';
 import { Repository } from 'typeorm';
 import { Role } from '../../database/entities/role.entity';
@@ -159,7 +159,7 @@ class AuthService extends AuthServiceContract {
         await this.authProviderRepo.save(provider);
       } else {
         const userRole = await this.roleRepo.findOneBy({
-          name: UserRoles.CUSTOMER,
+          name: RolesEnum.CUSTOMER,
         });
         if (!userRole) throw new Error('USER role not found');
 
@@ -288,6 +288,7 @@ class AuthService extends AuthServiceContract {
 
     const attemptsKey = `login_attempts:${email}`;
     const attempts = await this.redis.get(attemptsKey);
+
     if (parseInt(attempts || '0') > 5) {
       throw new UnauthorizedException('Too many attempts. Try again later.');
     }
@@ -307,7 +308,7 @@ class AuthService extends AuthServiceContract {
     if (!user) throw new UnauthorizedException('invalid credentials');
 
     const authProvider = await this.authProviderRepo.findOne({
-      where: { user: user, provider: authProviders.LOCAL },
+      where: { user: { id: user.id }, provider: authProviders.LOCAL },
       relations: ['user'],
     });
 
@@ -315,7 +316,14 @@ class AuthService extends AuthServiceContract {
       ? await bcrypt.compare(password, user.password)
       : false;
 
-    const canLogin = user && validPassword && user.isActive && authProvider && authProvider.emailVerified;
+    // console.log({authProvider:authProvider, user:user, authProviders:authProviders.LOCAL})
+
+    if(!validPassword) throw new UnauthorizedException('invalid password');
+    if(!user.isActive) throw new UnauthorizedException('inactive user');
+    if(!authProvider) throw new UnauthorizedException('no auth provider exists');
+    // if(!authProvider.emailVerified) throw new UnauthorizedException('email not verified. Please verify to continue');
+
+    const canLogin = user && validPassword && user.isActive && authProvider /* && authProvider.emailVerified*/;
 
     if (!canLogin) {
       await this.redis.incr(attemptsKey);
@@ -394,7 +402,7 @@ class AuthService extends AuthServiceContract {
       }
 
       const role = await queryRunner.manager.findOne(Role, {
-        where: { name: UserRoles.CUSTOMER },
+        where: { name: RolesEnum.CUSTOMER },
       });
 
       if (!role) throw new InternalServerErrorException('Role not found');

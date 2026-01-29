@@ -1,7 +1,7 @@
-import { UserRoles } from '../../../common/enums/users.enum';
+import { RolesEnum } from '../../../common/enums/role.enum';
 
 export interface AuthUser {
   username: string;
   email: string;
-  roles: UserRoles[];
+  roles: RolesEnum[];
 }
