@@ -9,7 +9,6 @@ import {
   ParseIntPipe,
   Patch,
   Post,
-  UseGuards,
   UseInterceptors,
 } from '@nestjs/common';
 import { CreateUserDto } from './dto/create-user.dto';
@@ -18,9 +17,17 @@ import { AnyFilesInterceptor } from '@nestjs/platform-express';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { ApiBadRequestResponse, ApiCreatedResponse } from '@nestjs/swagger';
 import { User } from '../../database/entities/user.entity';
-import { JwtAuthGuard } from '../../common/guards/jwt-auth/jwt-auth.service';
+import {
+  JwtProtect,
+  PermissionProtect,
+  RolesProtect,
+} from '../../common/decorators/auth/auth.decorator';
+import { RolesEnum } from '../../common/enums/role.enum';
+import { PermissionEnum } from '../../common/enums/permission.enum';
 
-@UseGuards(JwtAuthGuard)
+@JwtProtect()
+@RolesProtect(RolesEnum.CUSTOMER)
+@PermissionProtect(PermissionEnum.ORDER_VIEW)
 @Controller('users')
 export class UserController {
   constructor(private readonly user: UserServiceContract) {}
@@ -28,16 +35,16 @@ export class UserController {
   @Get()
   async getUsers() {
     const users = await this.user.findAll();
-    if(users.length === 0){
+    if (users.length === 0) {
       return {
-        message: "Users not found",
-        data: []
-      }
+        message: 'Users not found',
+        data: [],
+      };
     }
     return {
-      message: "Users found successfully",
+      message: 'Users found successfully',
       data: users,
-    }
+    };
   }
 
   @Get(':id')
@@ -45,10 +52,10 @@ export class UserController {
     try {
       const user = await this.user.getOne(id);
       return {
-        message: "User found",
+        message: 'User found',
         data: user,
-      }
-    }catch ({message}) {
+      };
+    } catch ({ message }) {
       throw new NotFoundException(message);
     }
   }
@@ -67,9 +74,9 @@ export class UserController {
     try {
       const saveUser = await this.user.create(body);
       return {
-        message: "User created successfully",
+        message: 'User created successfully',
         data: saveUser,
-      }
+      };
     } catch ({ message }) {
       throw new BadRequestException(message);
     }
@@ -77,7 +84,10 @@ export class UserController {
 
   @Patch(':id')
   @UseInterceptors(AnyFilesInterceptor())
-  async update(@Param('id', ParseIntPipe) id: number, @Body() body: UpdateUserDto){
+  async update(
+    @Param('id', ParseIntPipe) id: number,
+    @Body() body: UpdateUserDto,
+  ) {
     return await this.user.update(id, body);
   }
 
