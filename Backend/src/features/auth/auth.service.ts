@@ -61,6 +61,18 @@ class AuthService extends AuthServiceContract {
     return { token, tokenHash };
   }
 
+  async removeRefreshToken(refreshToken: string): Promise<boolean> {
+    const oldHash = createHash('sha256').update(refreshToken).digest('hex');
+    const oldKey = `refresh:${oldHash}`;
+
+    const data = await this.redis.get(oldKey);
+    if (!data) throw new UnauthorizedException('Invalid refresh token');
+
+    await this.redis.del(oldKey);
+
+    return true;
+  }
+
   async generateGoogleLoginPageUrl(): Promise<string | null> {
     try {
       const oauthSessionId = this.generate32ByteHex();
@@ -296,14 +308,7 @@ class AuthService extends AuthServiceContract {
     const user = await this.userRepo.findOne({
       where: { email },
       relations: ['roles'],
-      select: [
-        'id',
-        'email',
-        'password',
-        'isActive',
-        'name',
-        'roles',
-      ],
+      select: ['id', 'email', 'password', 'isActive', 'name', 'roles'],
     });
     if (!user) throw new UnauthorizedException('invalid credentials');
 
@@ -318,12 +323,17 @@ class AuthService extends AuthServiceContract {
 
     // console.log({authProvider:authProvider, user:user, authProviders:authProviders.LOCAL})
 
-    if(!validPassword) throw new UnauthorizedException('invalid password');
-    if(!user.isActive) throw new UnauthorizedException('inactive user');
-    if(!authProvider) throw new UnauthorizedException('no auth provider exists');
+    if (!validPassword) throw new UnauthorizedException('invalid password');
+    if (!user.isActive) throw new UnauthorizedException('inactive user');
+    if (!authProvider)
+      throw new UnauthorizedException('no auth provider exists');
     // if(!authProvider.emailVerified) throw new UnauthorizedException('email not verified. Please verify to continue');
 
-    const canLogin = user && validPassword && user.isActive && authProvider /* && authProvider.emailVerified*/;
+    const canLogin =
+      user &&
+      validPassword &&
+      user.isActive &&
+      authProvider; /* && authProvider.emailVerified*/
 
     if (!canLogin) {
       await this.redis.incr(attemptsKey);
@@ -370,7 +380,6 @@ class AuthService extends AuthServiceContract {
         where: { email },
         lock: { mode: 'pessimistic_write' },
       });
-
 
       const salt = await bcrypt.genSalt(10);
       const hashedPassword = await bcrypt.hash(password, salt);

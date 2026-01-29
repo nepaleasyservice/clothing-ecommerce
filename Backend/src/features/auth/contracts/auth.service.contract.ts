@@ -16,5 +16,10 @@ export abstract class AuthServiceContract {
   abstract loginWithGoogle(
     tokens: OAuth2Tokens,
   ): Promise<{ accessToken: string; refreshToken: string }>;
-  abstract refresh(refreshToken: string): Promise<{ accessToken: string, refreshToken: string }>
+  abstract refresh(
+    refreshToken: string,
+  ): Promise<{ accessToken: string; refreshToken: string }>;
+  abstract removeRefreshToken(
+    refreshToken: string,
+  ): Promise<boolean>;
 }
